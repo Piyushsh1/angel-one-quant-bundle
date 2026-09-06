@@ -1,0 +1,48 @@
+# ==============================================================================
+#  Secrets — NEVER commit. Real credentials live in these.
+# ==============================================================================
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.log
+
+# ── Data / DB artifacts ───────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+data/
+authpg/
+
+# ── Node / Next.js (frontend) ─────────────────────────────────────────────
+node_modules/
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+
+# ── Editor / OS ───────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# ── Playwright / test caches ──────────────────────────────────────────────
+playwright-report/
+test-results/

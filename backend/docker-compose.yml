@@ -1,0 +1,53 @@
+# ==============================================================================
+#  Barbell auth API — standalone dev stack (API + Postgres)
+# ==============================================================================
+#  Run:   docker compose up -d --build
+#  Docs:  http://localhost:8000/docs   (dev only)
+# ==============================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: algo_barbell_dev
+      POSTGRES_USER: algo
+      POSTGRES_PASSWORD: change_me_dev
+      TZ: UTC
+    ports:
+      - "5433:5432"          # 5433 on host to avoid clashing with a local PG
+    volumes:
+      - authpg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U algo -d algo_barbell_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 8s
+
+  api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: algo_barbell_dev
+      DB_USER: algo
+      DB_PASSWORD: change_me_dev
+      SESSION_SECRET: dev-only-insecure-secret-change-me
+      CORS_ORIGINS: http://localhost:3000
+      # Generous in local dev so manual testing isn't throttled. Tighten for
+      # any shared/staging deployment.
+      SIGNUP_RATE_LIMIT: 100/minute
+      LOGIN_RATE_LIMIT: 100/minute
+      # Telegram bot — sourced from backend/.env (git-ignored). One shared bot
+      # for all users; each user is reached by their own captured chat_id.
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+volumes:
+  authpg:

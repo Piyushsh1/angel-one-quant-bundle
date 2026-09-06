@@ -1,0 +1,123 @@
+# ==============================================================================
+#  algo-barbell — Docker Compose stack
+# ==============================================================================
+#  ONE application image, THREE environments.  The environment is selected by
+#  APP_ENV, which picks both the env file and the Postgres database:
+#
+#      APP_ENV=dev      docker compose -p algo-barbell-dev     up -d
+#      APP_ENV=preprod  docker compose -p algo-barbell-preprod up -d
+#      APP_ENV=prod     docker compose -p algo-barbell-prod    up -d
+#
+#  The distinct -p project name gives each environment its own containers,
+#  network and data volume, so environments cannot collide on one host.
+#
+#  ALWAYS-ON services : postgres
+#  ON-DEMAND services : macro, smallcap, options, regime-eod
+#                       (grouped in the "engines" profile so they do not start
+#                        with `up`; a scheduler invokes them — see
+#                        docs/DEPLOYMENT.md for the crontab.)
+#  TOOLS              : verify, metrics, flatten  ("tools" profile)
+#
+#  Run one engine now:
+#      APP_ENV=dev docker compose run --rm macro
+#
+#  Read performance:
+#      APP_ENV=dev docker compose run --rm metrics
+# ==============================================================================
+
+x-app-env: &app-env
+  env_file:
+    - env/${APP_ENV:-dev}.env
+
+x-app-common: &app-common
+  build:
+    context: .
+  image: algo-barbell:latest
+  depends_on:
+    postgres:
+      condition: service_healthy
+  volumes:
+    # Logs and the local candle/instrument cache persist across restarts.
+    - ./logs:/app/logs
+    - app-data:/app/data
+  restart: "no"
+
+services:
+  # ────────────────────────────────────────────────────────────────────────
+  #  DATABASE — one database per environment, isolated by volume + project
+  # ────────────────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    # POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD come from the env file.
+    # They are deliberately NOT restated under `environment:` here: values in
+    # `environment:` are interpolated from the *shell*, not from env_file, so
+    # duplicating them silently initialises the database with different
+    # credentials than the application reads. Keep them in one place only.
+    <<: *app-env
+    environment:
+      # Postgres itself stays UTC; the application does all IST conversion.
+      TZ: UTC
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Engines wait on this before touching the schema.
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-algo} -d $${POSTGRES_DB:-algo_barbell_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+
+  # NOTE: the Streamlit operator console was removed — a dedicated frontend
+  # (separate service, talking to an API layer) replaces it. Postgres is now
+  # the only always-on service; everything else is invoked per task.
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  TRADING ENGINES — one-shot runs, triggered on a schedule
+  # ────────────────────────────────────────────────────────────────────────
+  options:
+    <<: [*app-common, *app-env]
+    profiles: ["engines"]
+    command: ["python", "src/option_predator.py"]
+
+  macro:
+    <<: [*app-common, *app-env]
+    profiles: ["engines"]
+    command: ["python", "src/macro_engine.py"]
+
+  smallcap:
+    <<: [*app-common, *app-env]
+    profiles: ["engines"]
+    command: ["python", "src/smallcap_engine.py"]
+
+  regime-eod:
+    <<: [*app-common, *app-env]
+    profiles: ["engines"]
+    command: ["python", "src/regime_eod.py"]
+
+  # ────────────────────────────────────────────────────────────────────────
+  #  UTILITIES — preflight check and emergency flatten
+  # ────────────────────────────────────────────────────────────────────────
+  verify:
+    <<: [*app-common, *app-env]
+    profiles: ["tools"]
+    command: ["python", "verify/verify.py"]
+
+  # Performance report: win rate, expectancy, drawdown, cost drag.
+  # With the Streamlit console gone, this is the primary way to read results
+  # until the new frontend lands.
+  metrics:
+    <<: [*app-common, *app-env]
+    profiles: ["tools"]
+    command: ["python", "src/metrics.py"]
+
+  flatten:
+    <<: [*app-common, *app-env]
+    profiles: ["tools"]
+    # Dry-run by default. Add --execute deliberately:
+    #   docker compose run --rm flatten python src/flatten_all.py --execute
+    command: ["python", "src/flatten_all.py"]
+
+volumes:
+  pgdata:
+  app-data:

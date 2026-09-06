@@ -1,0 +1,27 @@
+# Never bake secrets or local state into the image.
+.env
+.env.*
+env/*.env
+!env/*.env.example
+
+# Local state and caches — trading state lives in Postgres.
+data/
+logs/
+*.db
+*.db-shm
+*.db-wal
+
+venv/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+.pytest_cache/
+
+.git/
+.gitignore
+.DS_Store
+docs/
+README.md
+
+# PM2 config is superseded by docker-compose.
+ecosystem.config.js

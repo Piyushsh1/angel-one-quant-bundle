@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+
+# Local env files — never commit these.
+.env
+.env.local
+.env.*.local
+
+*.tsbuildinfo
+next-env.d.ts
+.eslintcache

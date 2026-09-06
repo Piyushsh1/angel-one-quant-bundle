@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-obsidian text-slate-200 antialiased;
+    @apply selection:bg-brand-500/30 selection:text-brand-400;
+  }
+
+  /* Visible focus for keyboard users only — mouse users don't get a ring,
+     keyboard users always do. Never remove this: it is the primary
+     navigation affordance for anyone not using a pointer. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-400 ring-offset-2 ring-offset-obsidian;
+  }
+
+  /* Monospaced numerals everywhere numbers appear, so digits occupy equal
+     width and columns don't jitter as prices tick. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* Faint grid, evoking a chart backdrop. */
+  .bg-grid-pattern {
+    background-size: 40px 40px;
+    background-image:
+      linear-gradient(to right, rgb(255 255 255 / 2%) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(255 255 255 / 2%) 1px, transparent 1px);
+  }
+
+  .glow-radial-overlay {
+    background:
+      radial-gradient(
+        circle at 75% 25%,
+        rgb(6 182 212 / 12%) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        circle at 20% 80%,
+        rgb(16 185 129 / 6%) 0%,
+        transparent 60%
+      );
+  }
+
+  .shimmer-text {
+    background: linear-gradient(
+      90deg,
+      #ffffff 0%,
+      #e2e8f0 40%,
+      #22d3ee 75%,
+      #ffffff 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    @apply animate-shimmer;
+  }
+}
+
+/* Respect the OS "reduce motion" setting. The shimmer and pulse effects are
+   decorative; for users who are motion-sensitive they are actively unpleasant. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .shimmer-text {
+    -webkit-text-fill-color: #ffffff;
+    background: none;
+  }
+}

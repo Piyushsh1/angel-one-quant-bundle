@@ -1,0 +1,24 @@
+# ── FastAPI auth service ──────────────────────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic[email]==2.10.4
+pydantic-settings==2.7.1
+
+# Async Postgres via SQLAlchemy 2.x + psycopg 3.
+SQLAlchemy[asyncio]==2.0.36
+psycopg[binary]>=3.2.10,<3.4
+
+# Password hashing. argon2 is the current OWASP-recommended default; it is
+# memory-hard, which makes GPU cracking far more expensive than bcrypt.
+argon2-cffi==23.1.0
+
+# Broker integration (Angel One SmartAPI).
+#   httpx        — async HTTP client for the live broker login/profile/RMS calls
+#   pyotp        — derives the 6-digit TOTP from the user's base32 secret
+#   cryptography — Fernet symmetric encryption for broker credentials at rest
+httpx==0.28.1
+pyotp==2.9.0
+cryptography==44.0.0
+
+# Rate limiting is implemented in-process (app/api/rate_limit.py). No external
+# dependency; swap the store for Redis when scaling to multiple instances.
